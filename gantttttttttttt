@@ -1,0 +1,86 @@
+import datetime
+import gantt
+import networkx as nx
+import matplotlib.pyplot as plt
+"""
+    Input format:
+    First row contains headers. Start reading form second row.
+    <task_id>, <task_name>, <dependencies>, <duration>, <percent_completed>
+"""
+
+INPUT_FILENAME = "gantt_chart.csv"
+GANTT_FILENAME = "gantt.svg"
+PERT_FILENAME = "pert.png"
+CRITICAL_NODES_FILENAME = "ZeroSlack.csv"
+PROJECT_NAME = ""
+START_DATE = datetime.date(2018,5,20)
+gantt.define_font_attributes(fill='black', stroke='black', stroke_width=1, font_family="Verdana")
+
+def make_gantt_chart(list_of_tasks):
+    # print(list_of_tasks)
+    # Create gantt.Task objects to be sent to project
+    gantt_tasks = []
+    for task in list_of_tasks:
+
+        dependencies = []
+        for gtask in gantt_tasks:
+            if(gtask.name in task['depends_of']):
+                dependencies.append(gtask)
+
+        t = gantt.Task(
+            name = task['name'],
+            start = task['start'],
+            duration = task['duration'],
+            depends_of = dependencies,
+            percent_done = task['percent_done'],
+        )
+        gantt_tasks.append(t)
+
+    # Add task to project
+    project = gantt.Project(name=PROJECT_NAME)
+    for task in gantt_tasks:
+        project.add_task(task)
+
+    project.make_svg_for_tasks(filename=GANTT_FILENAME)
+
+##############################################################################
+
+
+input_file = open(INPUT_FILENAME)
+content = input_file.read()
+records = content.split('\n')[1:]
+
+# Create task objects
+list_of_tasks = []
+for rec in records:
+
+    if(rec == ''):
+        break
+
+    values = rec.split(',')[:-1]
+
+    task_args = {}
+    task_args['id'] = values[0]
+    task_args['name'] = values[1]
+    task_args['start'] = START_DATE
+    task_args['duration'] = int(values[3])
+
+    dependencies = []
+    temps = values[2].split(' ')
+    for task in list_of_tasks:
+        # print("task", task)
+        if(task['id'] in temps):
+            dependencies.append(task['name'])
+
+    task_args['depends_of'] = dependencies
+
+    perc = values[4]
+    if(perc == '' or perc == 'null'):
+        task_args['percent_done'] = 0
+    else:
+        task_args['percent_done'] = int(perc)
+    list_of_tasks.append(task_args)
+
+
+make_gantt_chart(list_of_tasks)
+# make_PERT_chart(list_of_tasks)
